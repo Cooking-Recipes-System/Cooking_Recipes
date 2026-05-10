@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recipe — RecipeWebsite</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="navbar-brand">🍳 RecipeWebsite</div>
+    <div class="navbar-links">
+      <a href="dashboard.html">My Recipes</a>
+      <a href="add-recipe.html">+ Add Recipe</a>
+      <button class="btn-link btn-logout-nav" id="logoutBtn">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="page">
+    <a href="dashboard.html" class="back-link">← Back to My Recipes</a>
+
+    <div id="loadingState" class="loading-spinner">Loading recipe...</div>
+    <div id="alert" class="alert hidden"></div>
+
+    <div id="recipeDetail" class="recipe-detail hidden">
+
+      <div class="recipe-detail-header">
+        <h1 class="recipe-detail-title" id="recipeTitle"></h1>
+        <div class="recipe-detail-meta">
+          <span id="metaCategory"></span>
+          <span id="metaCookTime"></span>
+          <span id="metaServings"></span>
+          <span id="metaDate"></span>
+        </div>
+        <p class="recipe-detail-desc" id="recipeDesc"></p>
+      </div>
+
+      <h3 class="section-title">🥕 Ingredients</h3>
+      <ul class="ingredients-list" id="ingredientsList"></ul>
+
+      <div style="margin-top:1.5rem; display:flex; gap:.75rem; flex-wrap:wrap;">
+        <a href="dashboard.html"><button class="btn-secondary">← Back</button></a>
+        <button class="btn-edit" id="editBtn">✏️ Edit Recipe</button>
+        <button class="btn-danger" id="deleteBtn">🗑 Delete Recipe</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '../backend';
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'login.html';
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear(); window.location.href = 'login.html';
+    });
+
+    function showAlert(msg, type = 'error') {
+      const el = document.getElementById('alert');
+      el.textContent = msg;
+      el.className = `alert alert-${type}`;
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Get recipe ID from URL
+    const params = new URLSearchParams(window.location.search);
+    const recipeId = params.get('id');
+    if (!recipeId) window.location.href = 'dashboard.html';
+
+    async function loadRecipe() {
+      try {
+        const res = await fetch(`${API}/recipes.php?id=${recipeId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          showAlert(data.message || 'Recipe not found.');
+          document.getElementById('loadingState').classList.add('hidden');
+          return;
+        }
+
+        const r = data.recipe;
+
+        document.title = `${r.title} — RecipeWebsite`;
+        document.getElementById('recipeTitle').textContent = r.title;
+        document.getElementById('metaCategory').textContent = `📂 ${r.category}`;
+        document.getElementById('metaCookTime').textContent = `⏱ ${r.cook_time} min`;
+        document.getElementById('metaServings').textContent = `🍽 ${r.servings} serving${r.servings != 1 ? 's' : ''}`;
+        document.getElementById('metaDate').textContent = `📅 ${new Date(r.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}`;
+        document.getElementById('recipeDesc').textContent = r.description || '';
+
+        const list = document.getElementById('ingredientsList');
+        if (r.ingredients.length) {
+          list.innerHTML = r.ingredients.map(i => `
+            <li>
+              <span class="ing-qty">${escHtml(i.quantity)}</span>
+              <span class="ing-name">${escHtml(i.name)}</span>
+            </li>
+          `).join('');
+        } else {
+          list.innerHTML = '<li>No ingredients listed.</li>';
+        }
+
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('recipeDetail').classList.remove('hidden');
+
+      } catch {
+        showAlert('Could not load recipe. Is the backend running?');
+        document.getElementById('loadingState').classList.add('hidden');
+      }
+    }
+
+    document.getElementById('editBtn').addEventListener('click', () => {
+      window.location.href = `edit-recipe.html?id=${recipeId}`;
+    });
+
+    document.getElementById('deleteBtn').addEventListener('click', async () => {
+      if (!confirm('Delete this recipe? This cannot be undone.')) return;
+      try {
+        const res = await fetch(`${API}/recipes.php?id=${recipeId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) { showAlert(data.message); return; }
+        window.location.href = 'dashboard.html';
+      } catch {
+        showAlert('Failed to delete recipe.');
+      }
+    });
+
+    loadRecipe();
+  </script>
+</body>
+</html>

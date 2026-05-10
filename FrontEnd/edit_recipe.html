@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edit Recipe — RecipeApp</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="navbar-brand">🍳 RecipeApp</div>
+    <div class="navbar-links">
+      <a href="dashboard.html">My Recipes</a>
+      <button class="btn-link btn-logout-nav" id="logoutBtn">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="page">
+    <a href="dashboard.html" class="back-link">← Back to My Recipes</a>
+
+    <div id="loadingState" class="loading-spinner">Loading recipe...</div>
+
+    <div class="form-card hidden" id="formCard">
+      <h2 class="form-card-title">✏️ Edit Recipe</h2>
+
+      <div id="alert" class="alert hidden"></div>
+
+      <form id="recipeForm" novalidate>
+
+        <!-- Title -->
+        <div class="form-group" style="margin-bottom:1.2rem">
+          <label for="title">Recipe Title *</label>
+          <input type="text" id="title" placeholder="e.g. Spaghetti Bolognese" required />
+        </div>
+
+        <!-- Description -->
+        <div class="form-group" style="margin-bottom:1.2rem">
+          <label for="description">Description</label>
+          <textarea id="description" placeholder="Brief description of the dish..."></textarea>
+        </div>
+
+        <!-- Category / Cook time / Servings -->
+        <div class="form-grid" style="margin-bottom:1.2rem">
+          <div class="form-group">
+            <label for="category">Category</label>
+            <select id="category">
+              <option value="General">General</option>
+              <option value="Breakfast">Breakfast</option>
+              <option value="Lunch">Lunch</option>
+              <option value="Dinner">Dinner</option>
+              <option value="Snack">Snack</option>
+              <option value="Dessert">Dessert</option>
+              <option value="Drink">Drink</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="cookTime">Cook Time (minutes)</label>
+            <input type="number" id="cookTime" min="0" value="30" />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1.5rem; max-width:200px">
+          <label for="servings">Servings</label>
+          <input type="number" id="servings" min="1" value="2" />
+        </div>
+
+        <!-- Ingredients -->
+        <div class="form-group">
+          <label>Ingredients *</label>
+          <div class="ing-header">
+            <span>Ingredient name</span>
+            <span>Quantity</span>
+            <span></span>
+          </div>
+          <div class="ingredients-section" id="ingredientsList"></div>
+          <button type="button" class="btn-add-ing" id="addIngBtn">+ Add Ingredient</button>
+        </div>
+
+        <div style="display:flex; gap:.75rem; margin-top:1.5rem; flex-wrap:wrap;">
+          <button type="submit" class="btn-primary" id="submitBtn" style="flex:1; min-width:140px">
+            💾 Save Changes
+          </button>
+          <a href="dashboard.html" style="flex:1; min-width:120px;">
+            <button type="button" class="btn-secondary" style="width:100%">Cancel</button>
+          </a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API = '../backend';
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'login.html';
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear(); window.location.href = 'login.html';
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const recipeId = params.get('id');
+    if (!recipeId) window.location.href = 'dashboard.html';
+
+    function showAlert(msg, type = 'error') {
+      const el = document.getElementById('alert');
+      el.textContent = msg;
+      el.className = `alert alert-${type}`;
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function escAttr(str) {
+      return String(str).replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function addIngredientRow(name = '', qty = '') {
+      const row = document.createElement('div');
+      row.className = 'ingredient-row';
+      row.innerHTML = `
+        <input type="text" placeholder="e.g. Tomato" value="${escAttr(name)}" class="ing-name-input" />
+        <input type="text" placeholder="e.g. 2 cups" value="${escAttr(qty)}" class="ing-qty-input" />
+        <button type="button" class="btn-remove-ing" title="Remove">✕</button>
+      `;
+      row.querySelector('.btn-remove-ing').addEventListener('click', () => row.remove());
+      document.getElementById('ingredientsList').appendChild(row);
+    }
+
+    document.getElementById('addIngBtn').addEventListener('click', () => addIngredientRow());
+
+    // Load existing recipe data
+    async function loadRecipe() {
+      try {
+        const res = await fetch(`${API}/recipes.php?id=${recipeId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          document.getElementById('loadingState').textContent = data.message || 'Recipe not found.';
+          return;
+        }
+
+        const r = data.recipe;
+
+        // Fill form fields
+        document.getElementById('title').value       = r.title;
+        document.getElementById('description').value = r.description || '';
+        document.getElementById('cookTime').value    = r.cook_time;
+        document.getElementById('servings').value    = r.servings;
+
+        // Set category dropdown
+        const catSelect = document.getElementById('category');
+        for (let opt of catSelect.options) {
+          if (opt.value === r.category) { opt.selected = true; break; }
+        }
+
+        // Fill ingredients
+        if (r.ingredients && r.ingredients.length) {
+          r.ingredients.forEach(i => addIngredientRow(i.name, i.quantity));
+        } else {
+          addIngredientRow();
+        }
+
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('formCard').classList.remove('hidden');
+
+      } catch {
+        document.getElementById('loadingState').textContent = 'Could not load recipe.';
+      }
+    }
+
+    // Submit update
+    document.getElementById('recipeForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const title       = document.getElementById('title').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const category    = document.getElementById('category').value;
+      const cookTime    = parseInt(document.getElementById('cookTime').value) || 0;
+      const servings    = parseInt(document.getElementById('servings').value) || 1;
+
+      const rows = document.querySelectorAll('.ingredient-row');
+      const ingredients = [];
+      rows.forEach(row => {
+        const name = row.querySelector('.ing-name-input').value.trim();
+        const qty  = row.querySelector('.ing-qty-input').value.trim();
+        if (name && qty) ingredients.push({ name, quantity: qty });
+      });
+
+      if (!title)            { showAlert('Please enter a recipe title.'); return; }
+      if (!ingredients.length) { showAlert('Add at least one ingredient with a name and quantity.'); return; }
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+
+      try {
+        const res = await fetch(`${API}/recipes.php?id=${recipeId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ title, description, category, cook_time: cookTime, servings, ingredients })
+        });
+        const data = await res.json();
+
+        if (!res.ok) { showAlert(data.message); return; }
+
+        showAlert('Recipe updated! Redirecting...', 'success');
+        setTimeout(() => window.location.href = `recipe.html?id=${recipeId}`, 1200);
+
+      } catch {
+        showAlert('Could not save changes. Is the backend running?');
+      } finally {
+        btn.disabled = false; btn.textContent = '💾 Save Changes';
+      }
+    });
+
+    loadRecipe();
+  </script>
+</body>
+</html>
