@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Recipes — RecipeApp</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="navbar-brand">🍳 RecipeApp</div>
+    <div class="navbar-links">
+      <span id="navUser" class="nav-user"></span>
+      <a href="add-recipe.html">+ Add Recipe</a>
+      <button class="btn-link btn-logout-nav" id="logoutBtn">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <h1 class="page-title">My Recipes</h1>
+      <a href="add-recipe.html" class="btn-secondary">+ Add Recipe</a>
+    </div>
+
+    <!-- Search -->
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search by recipe name or ingredient..." />
+      <button id="searchBtn">Search</button>
+    </div>
+
+    <div id="alert" class="alert hidden"></div>
+    <div id="loadingState" class="loading-spinner">Loading recipes...</div>
+
+    <div id="recipesGrid" class="recipes-grid hidden"></div>
+
+    <div id="emptyState" class="empty-state hidden">
+      <div class="empty-icon">🍽️</div>
+      <p>No recipes yet. <a href="add-recipe.html">Add your first recipe!</a></p>
+    </div>
+  </div>
+
+  <script>
+    const API = '../backend';
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'login.html';
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    });
+
+    // Set nav username
+    const saved = JSON.parse(localStorage.getItem('user') || '{}');
+    if (saved.name) document.getElementById('navUser').textContent = saved.name;
+
+    function showAlert(msg, type = 'error') {
+      const el = document.getElementById('alert');
+      el.textContent = msg;
+      el.className = `alert alert-${type}`;
+    }
+
+    function renderRecipes(recipes) {
+      const grid = document.getElementById('recipesGrid');
+      const empty = document.getElementById('emptyState');
+
+      if (!recipes.length) {
+        grid.classList.add('hidden');
+        empty.classList.remove('hidden');
+        return;
+      }
+
+      empty.classList.add('hidden');
+      grid.classList.remove('hidden');
+      grid.innerHTML = recipes.map(r => `
+        <div class="recipe-card">
+          <div class="recipe-card-header">
+            <span class="recipe-card-title">${escHtml(r.title)}</span>
+            <span class="recipe-badge">${escHtml(r.category)}</span>
+          </div>
+          <p class="recipe-card-desc">${escHtml(r.description || 'No description.')}</p>
+          <div class="recipe-card-meta">
+            <span>⏱ ${r.cook_time} min</span>
+            <span>🍽 ${r.servings} serving${r.servings != 1 ? 's' : ''}</span>
+            <span>🥕 ${r.ingredient_count} ingredient${r.ingredient_count != 1 ? 's' : ''}</span>
+          </div>
+          <div class="recipe-card-footer">
+            <a href="recipe.html?id=${r.id}"><button class="btn-secondary">👁 View</button></a>
+            <a href="edit-recipe.html?id=${r.id}"><button class="btn-edit">✏️ Edit</button></a>
+            <button class="btn-danger" onclick="deleteRecipe(${r.id}, this)">🗑</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadRecipes(query = '') {
+      document.getElementById('loadingState').classList.remove('hidden');
+      document.getElementById('recipesGrid').classList.add('hidden');
+      document.getElementById('emptyState').classList.add('hidden');
+
+      const url = query
+        ? `${API}/search.php?q=${encodeURIComponent(query)}`
+        : `${API}/recipes.php`;
+
+      try {
+        const res = await fetch(url, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) { showAlert(data.message); return; }
+        renderRecipes(data.recipes);
+      } catch {
+        showAlert('Could not load recipes. Is the backend running?');
+      } finally {
+        document.getElementById('loadingState').classList.add('hidden');
+      }
+    }
+
+    async function deleteRecipe(id, btn) {
+      if (!confirm('Delete this recipe?')) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`${API}/recipes.php?id=${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) { showAlert(data.message); return; }
+        loadRecipes(document.getElementById('searchInput').value.trim());
+      } catch {
+        showAlert('Failed to delete recipe.');
+      }
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      loadRecipes(document.getElementById('searchInput').value.trim());
+    });
+    document.getElementById('searchInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') loadRecipes(e.target.value.trim());
+    });
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    loadRecipes();
+  </script>
+</body>
+</html>
