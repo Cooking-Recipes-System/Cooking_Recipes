@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add Recipe — RecipeWebsite</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="navbar-brand">🍳 RecipeWebsite</div>
+    <div class="navbar-links">
+      <a href="dashboard.html">My Recipes</a>
+      <button class="btn-link btn-logout-nav" id="logoutBtn">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="page">
+    <a href="dashboard.html" class="back-link">← Back to My Recipes</a>
+
+    <div class="form-card">
+      <h2 class="form-card-title">🥘 Add New Recipe</h2>
+
+      <div id="alert" class="alert hidden"></div>
+
+      <form id="recipeForm" novalidate>
+
+        <!-- Title -->
+        <div class="form-group" style="margin-bottom:1.2rem">
+          <label for="title">Recipe Title *</label>
+          <input type="text" id="title" placeholder="e.g. Spaghetti Bolognese" required />
+        </div>
+
+        <!-- Description -->
+        <div class="form-group" style="margin-bottom:1.2rem">
+          <label for="description">Description</label>
+          <textarea id="description" placeholder="Brief description of the dish..."></textarea>
+        </div>
+
+        <!-- Category / Cook time / Servings -->
+        <div class="form-grid" style="margin-bottom:1.2rem">
+          <div class="form-group">
+            <label for="category">Category</label>
+            <select id="category">
+              <option value="General">General</option>
+              <option value="Breakfast">Breakfast</option>
+              <option value="Lunch">Lunch</option>
+              <option value="Dinner">Dinner</option>
+              <option value="Snack">Snack</option>
+              <option value="Dessert">Dessert</option>
+              <option value="Drink">Drink</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="cookTime">Cook Time (minutes)</label>
+            <input type="number" id="cookTime" min="0" value="30" />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1.5rem; max-width:200px">
+          <label for="servings">Servings</label>
+          <input type="number" id="servings" min="1" value="2" />
+        </div>
+
+        <!-- Ingredients -->
+        <div class="form-group">
+          <label>Ingredients *</label>
+          <div class="ing-header">
+            <span>Ingredient name</span>
+            <span>Quantity</span>
+            <span></span>
+          </div>
+          <div class="ingredients-section" id="ingredientsList">
+            <!-- rows added by JS -->
+          </div>
+          <button type="button" class="btn-add-ing" id="addIngBtn">+ Add Ingredient</button>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submitBtn" style="margin-top:1.5rem">
+          Save Recipe
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API = '../backend';
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'login.html';
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear(); window.location.href = 'login.html';
+    });
+
+    function showAlert(msg, type = 'error') {
+      const el = document.getElementById('alert');
+      el.textContent = msg;
+      el.className = `alert alert-${type}`;
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function addIngredientRow(name = '', qty = '') {
+      const row = document.createElement('div');
+      row.className = 'ingredient-row';
+      row.innerHTML = `
+        <input type="text" placeholder="e.g. Tomato" value="${escHtml(name)}" class="ing-name-input" />
+        <input type="text" placeholder="e.g. 2 cups" value="${escHtml(qty)}" class="ing-qty-input" />
+        <button type="button" class="btn-remove-ing" title="Remove">✕</button>
+      `;
+      row.querySelector('.btn-remove-ing').addEventListener('click', () => {
+        row.remove();
+      });
+      document.getElementById('ingredientsList').appendChild(row);
+    }
+
+    // Start with 3 empty rows
+    addIngredientRow(); addIngredientRow(); addIngredientRow();
+
+    document.getElementById('addIngBtn').addEventListener('click', () => addIngredientRow());
+
+    document.getElementById('recipeForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const title       = document.getElementById('title').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const category    = document.getElementById('category').value;
+      const cookTime    = parseInt(document.getElementById('cookTime').value) || 0;
+      const servings    = parseInt(document.getElementById('servings').value) || 1;
+
+      // Collect ingredients
+      const rows = document.querySelectorAll('.ingredient-row');
+      const ingredients = [];
+      rows.forEach(row => {
+        const name = row.querySelector('.ing-name-input').value.trim();
+        const qty  = row.querySelector('.ing-qty-input').value.trim();
+        if (name && qty) ingredients.push({ name, quantity: qty });
+      });
+
+      if (!title) { showAlert('Please enter a recipe title.'); return; }
+      if (!ingredients.length) { showAlert('Add at least one ingredient with a name and quantity.'); return; }
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+
+      try {
+        const res = await fetch(`${API}/recipes.php`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ title, description, category, cook_time: cookTime, servings, ingredients })
+        });
+        const data = await res.json();
+        if (!res.ok) { showAlert(data.message); return; }
+
+        showAlert('Recipe saved! Redirecting...', 'success');
+        setTimeout(() => window.location.href = 'dashboard.html', 1200);
+      } catch {
+        showAlert('Could not save recipe. Is the backend running?');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save Recipe';
+      }
+    });
+
+    function escHtml(str) {
+      return String(str).replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  </script>
+</body>
+</html>
