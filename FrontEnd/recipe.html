@@ -12,7 +12,7 @@
     <div class="navbar-brand">🍳 RecipeWebsite</div>
     <div class="navbar-links">
       <a href="dashboard.html">My Recipes</a>
-      <a href="add-recipe.html">+ Add Recipe</a>
+      <a href="add_recipe.html">+ Add Recipe</a>
       <button class="btn-link btn-logout-nav" id="logoutBtn">Sign Out</button>
     </div>
   </nav>
@@ -118,7 +118,7 @@
     }
 
     document.getElementById('editBtn').addEventListener('click', () => {
-      window.location.href = `edit-recipe.html?id=${recipeId}`;
+      window.location.href = `edit_recipe.html?id=${recipeId}`;
     });
 
     document.getElementById('deleteBtn').addEventListener('click', async () => {

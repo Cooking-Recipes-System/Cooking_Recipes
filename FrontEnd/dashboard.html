@@ -12,7 +12,6 @@
     <div class="navbar-brand">🍳 RecipeWebsite</div>
     <div class="navbar-links">
       <span id="navUser" class="nav-user"></span>
-      <a href="add-recipe.html">+ Add Recipe</a>
       <button class="btn-link btn-logout-nav" id="logoutBtn">Sign Out</button>
     </div>
   </nav>
@@ -20,7 +19,7 @@
   <div class="page">
     <div class="page-header">
       <h1 class="page-title">My Recipes</h1>
-      <a href="add-recipe.html" class="btn-secondary">+ Add Recipe</a>
+      <a href="add_recipe.html" class="btn-secondary">+ Add Recipe</a>
     </div>
 
     <!-- Search -->
@@ -36,7 +35,7 @@
 
     <div id="emptyState" class="empty-state hidden">
       <div class="empty-icon">🍽️</div>
-      <p>No recipes yet. <a href="add-recipe.html">Add your first recipe!</a></p>
+      <p>No recipes yet. <a href="add_recipe.html">Add your first recipe!</a></p>
     </div>
   </div>
 
@@ -86,7 +85,7 @@
           </div>
           <div class="recipe-card-footer">
             <a href="recipe.html?id=${r.id}"><button class="btn-secondary">👁 View</button></a>
-            <a href="edit-recipe.html?id=${r.id}"><button class="btn-edit">✏️ Edit</button></a>
+            <a href="edit_recipe.html?id=${r.id}"><button class="btn-edit">✏️ Edit</button></a>
             <button class="btn-danger" onclick="deleteRecipe(${r.id}, this)">🗑</button>
           </div>
         </div>
