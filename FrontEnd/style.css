@@ -277,7 +277,7 @@ a:hover { color: var(--primary-dark); text-decoration: underline; }
 }
 .recipe-card-desc {
   font-size: .875rem; color: var(--text-muted);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  display: -webkit-box; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .recipe-card-meta {
   display: flex; gap: 1rem; font-size: .8rem; color: var(--text-muted);
