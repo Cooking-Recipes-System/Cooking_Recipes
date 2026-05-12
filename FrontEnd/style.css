@@ -60,14 +60,14 @@ a:hover { color: var(--primary-dark); text-decoration: underline; }
 .btn-logout-nav:hover { color: #1d4ed8; }
 
 /* ===========================
-   Auth Pages
+   Recipe Pages
 =========================== */
-.auth-container {
+.recipe-container {
   min-height: calc(100vh - 64px);
   display: flex; align-items: center; justify-content: center;
   padding: 2rem 1rem;
 }
-.auth-card {
+.recipe-card {
   background: var(--white);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -80,10 +80,10 @@ a:hover { color: var(--primary-dark); text-decoration: underline; }
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.auth-title { font-size: 1.75rem; font-weight: 700; margin-bottom: .25rem; letter-spacing: -.5px; }
-.auth-subtitle { color: var(--text-muted); font-size: .95rem; margin-bottom: 1.75rem; }
-.auth-form { display: flex; flex-direction: column; gap: 1.2rem; }
-.auth-footer { text-align: center; margin-top: 1.5rem; font-size: .9rem; color: var(--text-muted); }
+.recipe-title { font-size: 1.75rem; font-weight: 700; margin-bottom: .25rem; letter-spacing: -.5px; }
+.recipe-subtitle { color: var(--text-muted); font-size: .95rem; margin-bottom: 1.75rem; }
+.recipe-form { display: flex; flex-direction: column; gap: 1.2rem; }
+.recipe-footer { text-align: center; margin-top: 1.5rem; font-size: .9rem; color: var(--text-muted); }
 
 /* ===========================
    Form Elements
